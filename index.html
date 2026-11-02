@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Coin Jar</title>
+<meta name="description" content="A kid-friendly piggy bank for adding and spending money, with a jar that fills with coins toward a saving goal.">
+<meta name="theme-color" content="#d9ecff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1830" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Coin Jar">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Rubik:wght@400;500;600;700&display=swap">
+<style>
+/* Standalone page reset (the published artifact gets this from its host page). */
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+html { -webkit-tap-highlight-color: transparent; }
+body { margin: 0; overscroll-behavior-y: none; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+button, label { touch-action: manipulation; }
+</style>
+<style>
+/* Layout: phone-first single column. A glass jar fills with gold coins toward a saving goal,
+   one chunky add/spend card sits under it, the coin log below. Two columns on wide screens. */
+:root {
+  --bg: #d9ecff;
+  --surface: #ffffff;
+  --field: #eef6ff;
+  --ink: #12213f;
+  --muted: #4a5b7d;
+  --line: #bcd2ec;
+
+  --coin: #ffc23d;
+  --coin-deep: #e5a014;
+  --coin-shine: #ffe38f;
+  --on-coin: #2b1d00;
+
+  --add: #0a7a53;
+  --add-deep: #064d34;
+  --add-soft: #d6f2e4;
+  --on-add: #ffffff;
+
+  --spend: #c7305a;
+  --spend-deep: #8c1c3e;
+  --spend-soft: #fde1e9;
+  --on-spend: #ffffff;
+
+  --lid: #ff7a59;
+  --glass: #f6fbff;
+  --shine: #ffffff;
+  --note: #fff1c2;
+  --note-line: #d9a500;
+  --focus: #12213f;
+
+  --font-display: "Bagel Fat One", "Rubik", system-ui, sans-serif;
+  --font-body: "Rubik", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1830; --surface: #16264a; --field: #0f1d3b; --ink: #eef3ff; --muted: #a9b8d8; --line: #2c4172;
+    --add: #46e0a1; --add-deep: #1f9a6c; --add-soft: #12382f; --on-add: #04261a;
+    --spend: #ff82a3; --spend-deep: #c14c70; --spend-soft: #43192c; --on-spend: #3a0718;
+    --lid: #ff8c6e; --glass: #233a6b; --note: #3a3218; --note-line: #7b6419; --focus: #eef3ff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1830; --surface: #16264a; --field: #0f1d3b; --ink: #eef3ff; --muted: #a9b8d8; --line: #2c4172;
+  --add: #46e0a1; --add-deep: #1f9a6c; --add-soft: #12382f; --on-add: #04261a;
+  --spend: #ff82a3; --spend-deep: #c14c70; --spend-soft: #43192c; --on-spend: #3a0718;
+  --lid: #ff8c6e; --glass: #233a6b; --note: #3a3218; --note-line: #7b6419; --focus: #eef3ff;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.5 var(--font-body);
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-text-size-adjust: 100%;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+h1, h2, p { margin: 0; }
+h1, h2 { text-wrap: balance; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- page grid ---------- */
+.app { max-width: 980px; margin-inline: auto; display: grid; gap: 22px; grid-template-columns: minmax(0, 1fr); }
+.head { display: grid; gap: 14px; }
+@media (min-width: 860px) {
+  .app { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 36px; align-items: start; }
+  .head, .foot { grid-column: 1 / -1; }
+  .hero-wrap, .log { grid-column: 1; }
+  .actions { grid-column: 2; grid-row: 2 / span 2; }
+}
+
+/* ---------- header ---------- */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; font: 400 30px/1 var(--font-display); letter-spacing: .01em; }
+.logo { width: 34px; height: 34px; flex: none; }
+.logo circle:first-child { fill: var(--coin); stroke: var(--ink); stroke-width: 3; }
+.logo circle:last-child { fill: none; stroke: var(--coin-deep); stroke-width: 3; }
+
+.notice {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  padding: 14px 16px; border-radius: 20px;
+  background: var(--note); border: 2px dashed var(--note-line);
+}
+.notice p { flex: 1 1 220px; min-width: 0; }
+.notice strong { font-weight: 600; }
+.btn-sm {
+  min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px;
+  background: var(--ink); color: var(--surface); font-weight: 600;
+}
+
+/* ---------- hero: jar + balance ---------- */
+.hero-wrap { display: grid; gap: 14px; }
+.hero { display: flex; align-items: center; gap: clamp(14px, 4vw, 28px); }
+.jar { flex: none; width: clamp(120px, 34vw, 210px); height: auto; overflow: visible; }
+.jar .ground { fill: var(--ink); opacity: .12; }
+.jar .glass { fill: var(--glass); fill-opacity: .7; }
+.jar .fill-pat { fill: url(#coinPat); }
+.jar .rim { fill: var(--coin-shine); }
+.jar .shine { fill: none; stroke: var(--shine); stroke-opacity: .5; stroke-width: 9; stroke-linecap: round; }
+.jar .lid { fill: var(--lid); stroke: var(--ink); stroke-width: 5; }
+.jar .slot { fill: var(--ink); }
+.jar .outline { fill: none; stroke: var(--ink); stroke-width: 5; stroke-linejoin: round; }
+.jar .dc { fill: var(--coin); stroke: var(--ink); stroke-width: 3; }
+.jar .dc-in { fill: none; stroke: var(--coin-deep); stroke-width: 2.5; }
+.pat-bg { fill: var(--coin-deep); }
+.pat-coin circle { fill: var(--coin); stroke: var(--coin-deep); stroke-width: 1.5; }
+.fill { transition: none; }
+.jar.ready .fill { transition: transform .8s cubic-bezier(.34, 1.3, .5, 1); }
+.drop { opacity: 0; }
+.drop.go-add { animation: dropIn .9s cubic-bezier(.45, .1, .6, 1) both; }
+.drop.go-spend { animation: liftOut .9s ease-out both; }
+@keyframes dropIn { 0% { transform: translateY(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateY(150px); opacity: 0; } }
+@keyframes liftOut { 0% { transform: translateY(150px); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(0); opacity: 0; } }
+
+.info { min-width: 0; display: grid; gap: 6px; justify-items: start; }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.balance { font: 400 clamp(44px, 13vw, 76px)/1 var(--font-display); letter-spacing: .01em; overflow-wrap: anywhere; }
+.goal-line { color: var(--muted); }
+.goal-line strong { color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
+.pill {
+  display: inline-flex; align-items: center; min-height: 28px; padding: 2px 12px; margin-top: 2px;
+  border-radius: 999px; background: var(--coin); color: var(--on-coin); font-size: 14px; font-weight: 700;
+}
+.link {
+  min-height: 44px; padding: 0 4px; border: 0; background: none; color: var(--ink);
+  font-weight: 500; text-decoration: underline; text-underline-offset: 3px;
+}
+
+/* ---------- surfaces ---------- */
+.panel { background: var(--surface); border: 2px solid var(--line); border-radius: 28px; padding: 20px; }
+.money-form { display: grid; gap: 18px; }
+.panel h2 { font: 400 24px/1.1 var(--font-display); letter-spacing: .01em; }
+
+.field-label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.text-input {
+  width: 100%; min-height: 48px; padding: 0 14px;
+  border: 3px solid var(--line); border-radius: 16px; background: var(--field); color: var(--ink);
+}
+.text-input:focus-visible { border-color: var(--ink); }
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+
+.seg-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 6px; background: var(--bg); border-radius: 22px; }
+.seg { position: relative; display: block; }
+.seg input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.seg span { display: grid; place-items: center; min-height: 54px; padding: 0 8px; border-radius: 16px; font-weight: 600; color: var(--muted); text-align: center; }
+.seg.add input:checked + span { background: var(--add); color: var(--on-add); }
+.seg.spend input:checked + span { background: var(--spend); color: var(--on-spend); }
+.seg input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.money-field {
+  display: flex; align-items: center; gap: 6px; padding: 0 18px;
+  border: 3px solid var(--line); border-radius: 20px; background: var(--field);
+}
+.money-field:focus-within { border-color: var(--ink); outline: 3px solid var(--focus); outline-offset: 2px; }
+.money-field .cur { font: 400 34px/1 var(--font-display); color: var(--muted); }
+.money-field input {
+  flex: 1; min-width: 0; padding: 12px 0; border: 0; outline: 0; background: transparent;
+  font: 400 38px/1 var(--font-display); color: var(--ink);
+}
+.money-field input::placeholder { color: var(--muted); opacity: .5; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  min-height: 44px; padding: 0 16px; border: 2px solid var(--line); border-radius: 999px;
+  background: var(--surface); font-weight: 500;
+}
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+
+.go {
+  width: 100%; min-height: 62px; border: 0; border-radius: 20px;
+  font: 400 23px/1 var(--font-display); letter-spacing: .02em;
+  transition: transform .08s ease, box-shadow .08s ease;
+}
+form[data-mode="add"] .go { background: var(--add); color: var(--on-add); box-shadow: 0 5px 0 var(--add-deep); }
+form[data-mode="spend"] .go { background: var(--spend); color: var(--on-spend); box-shadow: 0 5px 0 var(--spend-deep); }
+.go:active { transform: translateY(3px); }
+form[data-mode="add"] .go:active { box-shadow: 0 2px 0 var(--add-deep); }
+form[data-mode="spend"] .go:active { box-shadow: 0 2px 0 var(--spend-deep); }
+
+.msg { min-height: 24px; font-weight: 500; }
+.msg[data-kind="error"] { color: var(--spend); }
+.msg[data-kind="ok"] { color: var(--add); }
+
+.goal-form { display: grid; gap: 12px; }
+.goal-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn-ghost { min-height: 44px; padding: 0 18px; border: 2px solid var(--line); border-radius: 999px; background: var(--surface); font-weight: 500; }
+
+/* ---------- log ---------- */
+.log-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.rows { list-style: none; margin: 0; padding: 0; }
+.row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px 0; border-top: 2px solid var(--line); }
+.row:first-child { border-top: 0; }
+.sign { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; font: 400 24px/1 var(--font-display); }
+.row.add .sign { background: var(--add-soft); color: var(--add); }
+.row.spend .sign { background: var(--spend-soft); color: var(--spend); }
+.what { min-width: 0; }
+.what b { display: block; font-weight: 500; overflow-wrap: anywhere; }
+.when { font-size: 13px; color: var(--muted); }
+.amt { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.row.add .amt { color: var(--add); }
+.row.spend .amt { color: var(--spend); }
+.empty { padding: 14px 0 6px; color: var(--muted); }
+.more { margin-top: 8px; font-size: 13px; color: var(--muted); }
+
+/* ---------- footer ---------- */
+.foot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; color: var(--muted); font-size: 14px; }
+.confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <div class="head">
+    <header class="top">
+      <h1 class="brand">
+        <svg class="logo" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="14"/><circle cx="17" cy="17" r="8"/></svg>
+        Coin Jar
+      </h1>
+    </header>
+    <div class="notice" id="notice" hidden>
+      <p><strong>This is an example jar.</strong> The coins are made up so you can try things out.</p>
+      <button type="button" class="btn-sm" id="startFresh">Start my own jar</button>
+    </div>
+  </div>
+
+  <section class="hero-wrap" aria-label="My jar">
+    <div class="hero">
+      <svg class="jar" id="jar" viewBox="0 0 240 300" role="img" aria-label="Jar">
+        <defs>
+          <clipPath id="jarClip"><path d="M52 82H188A24 24 0 0 1 212 106V256A32 32 0 0 1 180 288H60A32 32 0 0 1 28 256V106A24 24 0 0 1 52 82Z"/></clipPath>
+          <pattern id="coinPat" width="36" height="36" patternUnits="userSpaceOnUse">
+            <rect class="pat-bg" width="36" height="36"/>
+            <g class="pat-coin">
+              <circle cx="9" cy="9" r="8"/><circle cx="27" cy="9" r="8"/>
+              <circle cx="0" cy="27" r="8"/><circle cx="18" cy="27" r="8"/><circle cx="36" cy="27" r="8"/>
+            </g>
+          </pattern>
+        </defs>
+        <ellipse class="ground" cx="120" cy="292" rx="86" ry="6"/>
+        <path class="glass" d="M52 82H188A24 24 0 0 1 212 106V256A32 32 0 0 1 180 288H60A32 32 0 0 1 28 256V106A24 24 0 0 1 52 82Z"/>
+        <g clip-path="url(#jarClip)">
+          <g class="fill" id="fill">
+            <rect class="fill-pat" x="28" y="82" width="184" height="206"/>
+            <rect class="rim" x="28" y="82" width="184" height="8"/>
+          </g>
+        </g>
+        <path class="shine" d="M46 116V246"/>
+        <g class="drop" id="drop"><circle class="dc" cx="120" cy="20" r="13"/><circle class="dc-in" cx="120" cy="20" r="7"/></g>
+        <rect class="lid" x="44" y="48" width="152" height="44" rx="14"/>
+        <rect class="slot" x="96" y="65" width="48" height="10" rx="5"/>
+        <path class="outline" d="M52 82H188A24 24 0 0 1 212 106V256A32 32 0 0 1 180 288H60A32 32 0 0 1 28 256V106A24 24 0 0 1 52 82Z"/>
+      </svg>
+
+      <div class="info">
+        <p class="eyebrow">In my jar</p>
+        <p class="balance"><span id="balanceNum" aria-hidden="true">$0.00</span><span class="sr" id="balanceSr"></span></p>
+        <p class="goal-line">Saving for <strong id="goalName"></strong></p>
+        <p class="goal-line" id="toGo"></p>
+        <span class="pill" id="pill"></span>
+        <button type="button" class="link" id="goalEdit">Change goal</button>
+      </div>
+    </div>
+
+    <form class="panel goal-form" id="goalForm" hidden>
+      <h2>My saving goal</h2>
+      <div>
+        <label class="field-label" for="goalNameIn">What are you saving for?</label>
+        <input class="text-input" id="goalNameIn" maxlength="24" autocomplete="off">
+      </div>
+      <div>
+        <label class="field-label" for="goalAmtIn">How much does it cost?</label>
+        <input class="text-input" id="goalAmtIn" inputmode="decimal" autocomplete="off" placeholder="25.00">
+      </div>
+      <p class="msg" id="goalMsg" role="status" data-kind="error"></p>
+      <div class="goal-actions">
+        <button type="submit" class="btn-sm">Save goal</button>
+        <button type="button" class="btn-ghost" id="goalCancel">Cancel</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel actions" aria-label="Add or spend money">
+    <form id="moneyForm" data-mode="add" class="money-form" novalidate>
+      <fieldset>
+        <legend class="sr">Add money or spend money</legend>
+        <div class="seg-wrap">
+          <label class="seg add"><input type="radio" name="mode" value="add" checked><span>Add money</span></label>
+          <label class="seg spend"><input type="radio" name="mode" value="spend"><span>Spend money</span></label>
+        </div>
+      </fieldset>
+
+      <div>
+        <label class="field-label" for="amount">How much?</label>
+        <div class="money-field">
+          <span class="cur" aria-hidden="true">$</span>
+          <input id="amount" inputmode="decimal" autocomplete="off" placeholder="0.00" maxlength="9" aria-describedby="msg">
+        </div>
+        <div class="chips" id="quick" style="margin-top:10px" role="group" aria-label="Quick amounts"></div>
+      </div>
+
+      <div>
+        <label class="field-label" for="note">What for? (optional)</label>
+        <input class="text-input" id="note" maxlength="40" autocomplete="off" placeholder="Type or pick one">
+        <div class="chips" id="reasons" style="margin-top:10px" role="group" aria-label="Ideas"></div>
+      </div>
+
+      <button type="submit" class="go" id="go">Add to jar</button>
+      <p class="msg" id="msg" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+
+  <section class="panel log" aria-labelledby="logTitle">
+    <div class="log-head">
+      <h2 id="logTitle">Coin log</h2>
+      <button type="button" class="link" id="undo">Undo last</button>
+    </div>
+    <ul class="rows" id="rows"></ul>
+    <p class="empty" id="empty" hidden>No coins yet. Add money above and it shows up here.</p>
+    <p class="more" id="more" hidden></p>
+  </section>
+
+  <footer class="foot">
+    <span>Your coins are saved on this device.</span>
+    <button type="button" class="link" id="clearAsk">Clear everything</button>
+    <span class="confirm" id="clearSure" hidden>
+      Erase all coins and start at $0.00?
+      <button type="button" class="btn-sm" id="clearYes">Yes, clear</button>
+      <button type="button" class="btn-ghost" id="clearNo">Keep my coins</button>
+    </span>
+  </footer>
+</main>
+
+<script>
+(() => {
+  'use strict';
+  const KEY = 'coinjar.v1';
+  const DAY = 86400000;
+  const FILL_H = 206;
+  const REASONS = {
+    add: ['Allowance', 'Chores', 'Gift', 'Birthday', 'Found it'],
+    spend: ['Candy', 'Toy', 'Game', 'Book', 'Snack']
+  };
+  const QUICK = [1, 2, 5, 10, 20];
+
+  const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+  const money = (c) => fmt.format(c / 100);
+  const $ = (id) => document.getElementById(id);
+  const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  // <pure>
+  function cleanAmount(s) {
+    s = String(s).replace(/[^\d.]/g, '');
+    const i = s.indexOf('.');
+    if (i < 0) return s.slice(0, 6);
+    return s.slice(0, i).slice(0, 6) + '.' + s.slice(i + 1).replace(/\./g, '').slice(0, 2);
+  }
+  function parseCents(s) {
+    s = String(s).replace(/[$,\s]/g, '');
+    if (s === '' || s === '.' || !/^\d{0,6}(\.\d{0,2})?$/.test(s)) return 0;
+    const c = Math.round(parseFloat(s) * 100);
+    return c > 0 ? c : 0;
+  }
+  // </pure>
+
+  /* ---------- state ---------- */
+  function sampleState() {
+    const now = Date.now();
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const t0 = today.getTime();
+    return {
+      sample: true,
+      goal: { name: 'Lego set', cents: 4000 },
+      entries: [
+        { type: 'spend', cents: 250, note: 'Gummy bears', t: t0 + (now - t0) / 2, ex: true },
+        { type: 'add', cents: 500, note: 'Washed the car', t: t0 - DAY + 12 * 3600000, ex: true },
+        { type: 'add', cents: 1000, note: 'Allowance', t: t0 - 3 * DAY + 12 * 3600000, ex: true }
+      ]
+    };
+  }
+  function balanceOf(s) {
+    return s.entries.reduce((sum, e) => sum + (e.type === 'add' ? e.cents : -e.cents), 0);
+  }
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+      if (!s || !Array.isArray(s.entries) || !s.goal) return null;
+      const ok = s.entries.every((e) => e && (e.type === 'add' || e.type === 'spend') && Number.isInteger(e.cents) && e.cents > 0 && Number.isFinite(e.t));
+      if (!ok || !Number.isInteger(s.goal.cents) || s.goal.cents <= 0) return null;
+      const clean = {
+        sample: !!s.sample,
+        goal: { name: String(s.goal.name || 'My goal').slice(0, 24), cents: s.goal.cents },
+        entries: s.entries.map((e) => ({ type: e.type, cents: e.cents, note: String(e.note || '').slice(0, 40), t: e.t, ex: !!e.ex }))
+      };
+      return balanceOf(clean) < 0 ? null : clean;
+    } catch (err) { return null; }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (err) { /* keep working in memory */ }
+  }
+
+  let state = load() || sampleState();
+  let mode = 'add';
+
+  /* ---------- elements ---------- */
+  const form = $('moneyForm');
+  const amountEl = $('amount');
+  const noteEl = $('note');
+  const msgEl = $('msg');
+  const jar = $('jar');
+  const fillEl = $('fill');
+
+  function say(text, kind) {
+    msgEl.textContent = text;
+    if (kind) msgEl.dataset.kind = kind; else delete msgEl.dataset.kind;
+  }
+
+  /* ---------- balance + jar ---------- */
+  let shown = null;
+  let raf = 0;
+  function setBalance(to) {
+    $('balanceSr').textContent = money(to);
+    cancelAnimationFrame(raf);
+    if (reduce || shown === null || shown === to) {
+      shown = to;
+      $('balanceNum').textContent = money(to);
+      return;
+    }
+    const from = shown;
+    const start = performance.now();
+    const step = (now) => {
+      const k = Math.min(1, (now - start) / 550);
+      const e = 1 - Math.pow(1 - k, 3);
+      shown = Math.round(from + (to - from) * e);
+      $('balanceNum').textContent = money(shown);
+      if (k < 1) raf = requestAnimationFrame(step); else shown = to;
+    };
+    raf = requestAnimationFrame(step);
+  }
+
+  function dropCoin(kind) {
+    if (reduce) return;
+    const g = $('drop');
+    g.classList.remove('go-add', 'go-spend');
+    void g.getBoundingClientRect();
+    g.classList.add(kind === 'add' ? 'go-add' : 'go-spend');
+  }
+
+  function renderHero() {
+    const bal = balanceOf(state);
+    const goal = state.goal.cents;
+    const pct = Math.min(1, bal / goal);
+    const frac = bal > 0 ? Math.max(pct, 0.06) : 0;
+    const whole = bal >= goal ? 100 : Math.floor(pct * 100);
+
+    setBalance(bal);
+    fillEl.style.transform = 'translateY(' + ((1 - frac) * FILL_H).toFixed(1) + 'px)';
+    jar.setAttribute('aria-label', 'Jar is ' + whole + ' percent full');
+    $('goalName').textContent = state.goal.name;
+    $('toGo').textContent = bal >= goal
+      ? 'Goal of ' + money(goal) + ' reached!'
+      : money(goal - bal) + ' to go. Goal is ' + money(goal) + '.';
+    $('pill').textContent = bal >= goal ? 'Goal reached' : whole + '% full';
+    $('notice').hidden = !state.sample;
+  }
+
+  /* ---------- log ---------- */
+  function dayLabel(t) {
+    const a = new Date(); a.setHours(0, 0, 0, 0);
+    const b = new Date(t); b.setHours(0, 0, 0, 0);
+    const d = Math.round((a - b) / DAY);
+    if (d <= 0) return 'Today';
+    if (d === 1) return 'Yesterday';
+    return new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  function renderLog() {
+    const ul = $('rows');
+    ul.textContent = '';
+    const list = state.entries;
+    $('empty').hidden = list.length > 0;
+    $('undo').hidden = list.length === 0;
+    list.slice(0, 30).forEach((e) => {
+      const li = document.createElement('li');
+      li.className = 'row ' + e.type;
+      const sign = document.createElement('span');
+      sign.className = 'sign';
+      sign.setAttribute('aria-hidden', 'true');
+      sign.textContent = e.type === 'add' ? '+' : '−';
+      const what = document.createElement('div');
+      what.className = 'what';
+      const b = document.createElement('b');
+      b.textContent = e.note || (e.type === 'add' ? 'Added to jar' : 'Spent');
+      const when = document.createElement('span');
+      when.className = 'when';
+      when.textContent = dayLabel(e.t) + (e.ex ? ' · example' : '');
+      what.append(b, when);
+      const amt = document.createElement('span');
+      amt.className = 'amt';
+      amt.textContent = (e.type === 'add' ? '+' : '−') + money(e.cents);
+      li.append(sign, what, amt);
+      ul.append(li);
+    });
+    const more = $('more');
+    more.hidden = list.length <= 30;
+    more.textContent = 'Showing the latest 30 of ' + list.length + ' coins.';
+  }
+
+  /* ---------- chips ---------- */
+  function makeChip(label, pressed, onClick) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip';
+    b.textContent = label;
+    b.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+    b.addEventListener('click', onClick);
+    return b;
+  }
+  function renderQuick() {
+    const box = $('quick');
+    box.textContent = '';
+    const cur = parseCents(amountEl.value);
+    QUICK.forEach((n) => {
+      box.append(makeChip('$' + n, cur === n * 100, () => {
+        amountEl.value = String(n);
+        say('');
+        renderQuick();
+      }));
+    });
+  }
+  function renderReasons() {
+    const box = $('reasons');
+    box.textContent = '';
+    REASONS[mode].forEach((label) => {
+      const on = noteEl.value === label;
+      box.append(makeChip(label, on, () => {
+        noteEl.value = noteEl.value === label ? '' : label;
+        renderReasons();
+      }));
+    });
+  }
+
+  function render() {
+    renderHero();
+    renderLog();
+  }
+
+  /* ---------- events ---------- */
+  form.querySelectorAll('input[name="mode"]').forEach((r) => {
+    r.addEventListener('change', () => {
+      mode = r.value;
+      form.dataset.mode = mode;
+      $('go').textContent = mode === 'add' ? 'Add to jar' : 'Spend from jar';
+      noteEl.value = '';
+      say('');
+      renderReasons();
+    });
+  });
+
+  amountEl.addEventListener('input', () => {
+    const c = cleanAmount(amountEl.value);
+    if (c !== amountEl.value) amountEl.value = c;
+    renderQuick();
+  });
+  noteEl.addEventListener('input', renderReasons);
+
+  form.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const cents = parseCents(amountEl.value);
+    const bal = balanceOf(state);
+    if (!cents) {
+      say('Type how much first, like 2.50.', 'error');
+      amountEl.focus();
+      return;
+    }
+    if (mode === 'spend' && cents > bal) {
+      say('Your jar only has ' + money(bal) + '. Try a smaller amount.', 'error');
+      amountEl.focus();
+      return;
+    }
+    state.entries.unshift({ type: mode, cents, note: noteEl.value.trim(), t: Date.now() });
+    save();
+    render();
+    dropCoin(mode);
+    const reached = mode === 'add' && bal < state.goal.cents && balanceOf(state) >= state.goal.cents;
+    if (reached) say('Added ' + money(cents) + '. Goal reached, your jar is full!', 'ok');
+    else say(mode === 'add' ? 'Added ' + money(cents) + ' to your jar.' : 'Spent ' + money(cents) + '.', 'ok');
+    amountEl.value = '';
+    noteEl.value = '';
+    renderQuick();
+    renderReasons();
+  });
+
+  $('undo').addEventListener('click', () => {
+    const e = state.entries.shift();
+    if (!e) return;
+    save();
+    render();
+    say(e.type === 'add'
+      ? 'Removed the ' + money(e.cents) + ' you added.'
+      : 'Put back the ' + money(e.cents) + ' you spent.', 'ok');
+  });
+
+  function resetAll(text) {
+    state = { sample: false, goal: { name: 'My goal', cents: 2000 }, entries: [] };
+    save();
+    render();
+    say(text, 'ok');
+  }
+  $('startFresh').addEventListener('click', () => resetAll('Fresh jar! Add your first coins.'));
+
+  const ask = $('clearAsk'), sure = $('clearSure');
+  ask.addEventListener('click', () => { ask.hidden = true; sure.hidden = false; $('clearNo').focus(); });
+  $('clearNo').addEventListener('click', () => { sure.hidden = true; ask.hidden = false; ask.focus(); });
+  $('clearYes').addEventListener('click', () => {
+    sure.hidden = true; ask.hidden = false;
+    resetAll('All clear. Your jar is empty.');
+  });
+
+  /* goal editing */
+  const gf = $('goalForm');
+  $('goalEdit').addEventListener('click', () => {
+    $('goalNameIn').value = state.goal.name;
+    $('goalAmtIn').value = (state.goal.cents / 100).toFixed(2);
+    $('goalMsg').textContent = '';
+    gf.hidden = false;
+    $('goalNameIn').focus();
+  });
+  $('goalAmtIn').addEventListener('input', () => {
+    const el = $('goalAmtIn');
+    const c = cleanAmount(el.value);
+    if (c !== el.value) el.value = c;
+  });
+  $('goalCancel').addEventListener('click', () => { gf.hidden = true; $('goalEdit').focus(); });
+  gf.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const cents = parseCents($('goalAmtIn').value);
+    if (!cents) {
+      $('goalMsg').textContent = 'Type what it costs, like 25.';
+      $('goalAmtIn').focus();
+      return;
+    }
+    state.goal = { name: $('goalNameIn').value.trim().slice(0, 24) || 'My goal', cents };
+    save();
+    gf.hidden = true;
+    render();
+    $('goalEdit').focus();
+    say('Goal updated.', 'ok');
+  });
+
+  /* ---------- first paint ---------- */
+  render();
+  renderQuick();
+  renderReasons();
+  requestAnimationFrame(() => requestAnimationFrame(() => jar.classList.add('ready')));
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !window.Capacitor) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  });
+}
+</script>
+</body>
+</html>

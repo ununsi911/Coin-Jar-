@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "Coin Jar",
+  "short_name": "Coin Jar",
+  "description": "A kid-friendly piggy bank for adding and spending money, with a jar that fills with coins toward a saving goal.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#d9ecff",
+  "theme_color": "#d9ecff",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
