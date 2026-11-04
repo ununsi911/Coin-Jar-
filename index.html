@@ -28,7 +28,8 @@ button, label { touch-action: manipulation; }
 </style>
 <style>
 /* Layout: phone-first single column. A glass jar fills with gold coins toward a saving goal,
-   one chunky add/spend card sits under it, the coin log below. Two columns on wide screens. */
+   one chunky add/spend card sits under it, the coin log below. Profiles live on a separate
+   "Who is saving today?" screen. Two columns on wide screens. */
 :root {
   --bg: #d9ecff;
   --surface: #ffffff;
@@ -59,6 +60,14 @@ button, label { touch-action: manipulation; }
   --note-line: #d9a500;
   --focus: #12213f;
 
+  --av0: #c2410c;
+  --av1: #0f766e;
+  --av2: #1d4ed8;
+  --av3: #7e22ce;
+  --av4: #be123c;
+  --av5: #4d7c0f;
+  --on-av: #ffffff;
+
   --font-display: "Bagel Fat One", "Rubik", system-ui, sans-serif;
   --font-body: "Rubik", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
@@ -68,6 +77,7 @@ button, label { touch-action: manipulation; }
     --add: #46e0a1; --add-deep: #1f9a6c; --add-soft: #12382f; --on-add: #04261a;
     --spend: #ff82a3; --spend-deep: #c14c70; --spend-soft: #43192c; --on-spend: #3a0718;
     --lid: #ff8c6e; --glass: #233a6b; --note: #3a3218; --note-line: #7b6419; --focus: #eef3ff;
+    --av0: #fdba74; --av1: #5eead4; --av2: #93c5fd; --av3: #d8b4fe; --av4: #fda4af; --av5: #bef264; --on-av: #0d1830;
     color-scheme: dark;
   }
 }
@@ -76,6 +86,7 @@ button, label { touch-action: manipulation; }
   --add: #46e0a1; --add-deep: #1f9a6c; --add-soft: #12382f; --on-add: #04261a;
   --spend: #ff82a3; --spend-deep: #c14c70; --spend-soft: #43192c; --on-spend: #3a0718;
   --lid: #ff8c6e; --glass: #233a6b; --note: #3a3218; --note-line: #7b6419; --focus: #eef3ff;
+  --av0: #fdba74; --av1: #5eead4; --av2: #93c5fd; --av3: #d8b4fe; --av4: #fda4af; --av5: #bef264; --on-av: #0d1830;
   color-scheme: dark;
 }
 
@@ -89,22 +100,24 @@ body {
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   -webkit-text-size-adjust: 100%;
 }
-button, input { font: inherit; color: inherit; }
+button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 h1, h2, p { margin: 0; }
 h1, h2 { text-wrap: balance; }
+h2[tabindex="-1"]:focus { outline: none; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ---------- page grid ---------- */
 .app { max-width: 980px; margin-inline: auto; display: grid; gap: 22px; grid-template-columns: minmax(0, 1fr); }
-.head { display: grid; gap: 14px; }
+.head { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 860px) {
   .app { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 36px; align-items: start; }
   .head, .foot { grid-column: 1 / -1; }
-  .hero-wrap, .log { grid-column: 1; }
+  .hero-wrap, .log, .profile { grid-column: 1; }
   .actions { grid-column: 2; grid-row: 2 / span 2; }
 }
+.app.gate { max-width: 520px; grid-template-columns: minmax(0, 1fr); }
 
 /* ---------- header ---------- */
 .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -112,6 +125,25 @@ h1, h2 { text-wrap: balance; }
 .logo { width: 34px; height: 34px; flex: none; }
 .logo circle:first-child { fill: var(--coin); stroke: var(--ink); stroke-width: 3; }
 .logo circle:last-child { fill: none; stroke: var(--coin-deep); stroke-width: 3; }
+
+.who {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; max-width: 60%;
+  padding: 3px 16px 3px 4px; border: 2px solid var(--line); border-radius: 999px;
+  background: var(--surface); font-weight: 600;
+}
+.who.signin { padding: 0 18px; }
+.who .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.av {
+  display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 50%;
+  background: var(--av0); color: var(--on-av); font: 400 18px/1 var(--font-display);
+}
+.av[data-c="1"] { background: var(--av1); }
+.av[data-c="2"] { background: var(--av2); }
+.av[data-c="3"] { background: var(--av3); }
+.av[data-c="4"] { background: var(--av4); }
+.av[data-c="5"] { background: var(--av5); }
+.av.big { width: 64px; height: 64px; font-size: 32px; }
 
 .notice {
   display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
@@ -126,7 +158,7 @@ h1, h2 { text-wrap: balance; }
 }
 
 /* ---------- hero: jar + balance ---------- */
-.hero-wrap { display: grid; gap: 14px; }
+.hero-wrap { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
 .hero { display: flex; align-items: center; gap: clamp(14px, 4vw, 28px); }
 .jar { flex: none; width: clamp(120px, 34vw, 210px); height: auto; overflow: visible; }
 .jar .ground { fill: var(--ink); opacity: .12; }
@@ -149,7 +181,7 @@ h1, h2 { text-wrap: balance; }
 @keyframes dropIn { 0% { transform: translateY(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateY(150px); opacity: 0; } }
 @keyframes liftOut { 0% { transform: translateY(150px); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(0); opacity: 0; } }
 
-.info { min-width: 0; display: grid; gap: 6px; justify-items: start; }
+.info { min-width: 0; display: grid; gap: 6px; justify-items: start; grid-template-columns: minmax(0, 1fr); }
 .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .balance { font: 400 clamp(44px, 13vw, 76px)/1 var(--font-display); letter-spacing: .01em; overflow-wrap: anywhere; }
 .goal-line { color: var(--muted); }
@@ -165,10 +197,10 @@ h1, h2 { text-wrap: balance; }
 
 /* ---------- surfaces ---------- */
 .panel { background: var(--surface); border: 2px solid var(--line); border-radius: 28px; padding: 20px; }
-.money-form { display: grid; gap: 18px; }
+.money-form { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); }
 .panel h2 { font: 400 24px/1.1 var(--font-display); letter-spacing: .01em; }
 
-.field-label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.field-label { display: block; margin-bottom: 8px; padding: 0; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .text-input {
   width: 100%; min-height: 48px; padding: 0 14px;
   border: 3px solid var(--line); border-radius: 16px; background: var(--field); color: var(--ink);
@@ -191,7 +223,7 @@ fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .money-field:focus-within { border-color: var(--ink); outline: 3px solid var(--focus); outline-offset: 2px; }
 .money-field .cur { font: 400 34px/1 var(--font-display); color: var(--muted); }
 .money-field input {
-  flex: 1; min-width: 0; padding: 12px 0; border: 0; outline: 0; background: transparent;
+  flex: 1 1 0; min-width: 0; width: 100%; padding: 12px 0; border: 0; outline: 0; background: transparent;
   font: 400 38px/1 var(--font-display); color: var(--ink);
 }
 .money-field input::placeholder { color: var(--muted); opacity: .5; }
@@ -218,7 +250,7 @@ form[data-mode="spend"] .go:active { box-shadow: 0 2px 0 var(--spend-deep); }
 .msg[data-kind="error"] { color: var(--spend); }
 .msg[data-kind="ok"] { color: var(--add); }
 
-.goal-form { display: grid; gap: 12px; }
+.goal-form { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
 .goal-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .btn-ghost { min-height: 44px; padding: 0 18px; border: 2px solid var(--line); border-radius: 999px; background: var(--surface); font-weight: 500; }
 
@@ -239,10 +271,46 @@ form[data-mode="spend"] .go:active { box-shadow: 0 2px 0 var(--spend-deep); }
 .empty { padding: 14px 0 6px; color: var(--muted); }
 .more { margin-top: 8px; font-size: 13px; color: var(--muted); }
 
+/* ---------- profile panel ---------- */
+.profile { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+.profile-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.stack { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+.hint { font-size: 14px; color: var(--muted); margin-top: 8px; }
+.pin-in { width: 9em; letter-spacing: .4em; text-align: center; font-weight: 700; }
+textarea.code {
+  width: 100%; min-height: 120px; padding: 12px 14px; resize: vertical;
+  border: 3px solid var(--line); border-radius: 16px; background: var(--field); color: var(--ink);
+  font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; word-break: break-all;
+}
+textarea.code:focus-visible { border-color: var(--ink); }
+.inline-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+
+/* ---------- sign-in screen ---------- */
+.gate-card { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); }
+.profiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+.profiles li { min-width: 0; }
+.pcard {
+  width: 100%; min-height: 128px; display: grid; justify-items: center; align-content: center; gap: 6px;
+  padding: 14px 10px; border: 3px solid var(--line); border-radius: 22px; background: var(--field);
+}
+.pcard:hover { border-color: var(--ink); }
+.pname { font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plock { font-size: 13px; color: var(--muted); }
+.gate-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+.swatches { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.sw { position: relative; display: block; }
+.sw input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.sw .av { width: 100%; max-width: 48px; height: auto; aspect-ratio: 1; border: 3px solid transparent; font-size: 22px; }
+.sw input:checked + .av { border-color: var(--ink); box-shadow: inset 0 0 0 3px var(--surface); }
+.sw input:checked + .av::after { content: "\2713"; }
+.sw input:focus-visible + .av { outline: 3px solid var(--focus); outline-offset: 2px; }
+
 /* ---------- footer ---------- */
 .foot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; color: var(--muted); font-size: 14px; }
 .confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; color: var(--ink); }
 .copy { flex-basis: 100%; font-size: 13px; }
+.warn { flex-basis: 100%; color: var(--spend); font-weight: 500; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -250,16 +318,17 @@ form[data-mode="spend"] .go:active { box-shadow: 0 2px 0 var(--spend-deep); }
 </style>
 </head>
 <body>
-<main class="app">
+<main class="app" id="appView">
   <div class="head">
     <header class="top">
       <h1 class="brand">
         <svg class="logo" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="14"/><circle cx="17" cy="17" r="8"/></svg>
         Coin Jar
       </h1>
+      <button type="button" class="who signin" id="whoBtn">Sign in</button>
     </header>
     <div class="notice" id="notice" hidden>
-      <p><strong>This is an example jar.</strong> The coins are made up so you can try things out.</p>
+      <p><strong>This is an example jar.</strong> Nothing here is saved. Make a profile to keep your own coins.</p>
       <button type="button" class="btn-sm" id="startFresh">Start my own jar</button>
     </div>
   </div>
@@ -360,24 +429,144 @@ form[data-mode="spend"] .go:active { box-shadow: 0 2px 0 var(--spend-deep); }
     <p class="more" id="more" hidden></p>
   </section>
 
+  <section class="panel profile" id="profilePanel" aria-labelledby="profTitle" hidden>
+    <h2 id="profTitle">My profile</h2>
+    <p>Signed in as <strong id="profName"></strong>.</p>
+    <div class="profile-actions">
+      <button type="button" class="btn-ghost" id="switchBtn">Switch profile</button>
+      <button type="button" class="btn-ghost" id="backupBtn" aria-expanded="false" aria-controls="backupBox">Backup code</button>
+      <button type="button" class="btn-ghost" id="pinBtn" aria-expanded="false" aria-controls="pinForm">Set a PIN</button>
+    </div>
+
+    <div class="stack" id="backupBox" hidden>
+      <div>
+        <label class="field-label" for="codeOut">My backup code</label>
+        <textarea class="code" id="codeOut" readonly spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+        <p class="hint">Copy this code and keep it somewhere safe, like a note or a text to yourself. On another phone, choose New profile, then "I have a backup code", and paste it. Anyone with the code can open a copy of your jar. The PIN is not part of the code.</p>
+      </div>
+      <div class="goal-actions">
+        <button type="button" class="btn-sm" id="copyBtn">Copy code</button>
+      </div>
+    </div>
+
+    <form class="stack" id="pinForm" hidden novalidate>
+      <div>
+        <label class="field-label" for="newPin">New PIN (4 numbers)</label>
+        <input class="text-input pin-in" id="newPin" type="password" inputmode="numeric" maxlength="4" autocomplete="off">
+        <p class="hint">Coin Jar asks for the PIN when you open it. It keeps family members out of your jar. It is not strong security.</p>
+      </div>
+      <div class="goal-actions">
+        <button type="submit" class="btn-sm">Save PIN</button>
+        <button type="button" class="btn-ghost" id="pinRemove">Remove PIN</button>
+        <button type="button" class="btn-ghost" id="pinCancel">Cancel</button>
+      </div>
+    </form>
+
+    <p class="msg" id="profMsg" role="status" aria-live="polite"></p>
+
+    <div>
+      <button type="button" class="link" id="delAsk">Delete this profile</button>
+      <span class="inline-confirm" id="delSure" hidden>
+        Delete this profile and all its coins?
+        <button type="button" class="btn-sm" id="delYes">Yes, delete</button>
+        <button type="button" class="btn-ghost" id="delNo">Keep it</button>
+      </span>
+    </div>
+  </section>
+
   <footer class="foot">
-    <span>Your coins are saved on this device.</span>
-    <button type="button" class="link" id="clearAsk">Clear everything</button>
+    <span id="saveNote"></span>
+    <button type="button" class="link" id="clearAsk">Clear this jar</button>
     <span class="confirm" id="clearSure" hidden>
       Erase all coins and start at $0.00?
       <button type="button" class="btn-sm" id="clearYes">Yes, clear</button>
       <button type="button" class="btn-ghost" id="clearNo">Keep my coins</button>
     </span>
-    <span class="copy">© 2026 Persiah Bedward</span>
+    <span class="warn" id="storeWarn" hidden>This browser is not letting Coin Jar save. Your coins will be lost when you close the page.</span>
+    <span class="copy">&copy; 2026 Persiah Bedward</span>
   </footer>
+</main>
+
+<main class="app gate" id="gateView" hidden>
+  <header class="top">
+    <h1 class="brand">
+      <svg class="logo" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="14"/><circle cx="17" cy="17" r="8"/></svg>
+      Coin Jar
+    </h1>
+  </header>
+
+  <section class="panel gate-card" aria-label="Sign in">
+    <div class="stack" id="gPick">
+      <h2 id="gPickH" tabindex="-1">Who is saving today?</h2>
+      <ul class="profiles" id="profileList"></ul>
+      <div class="gate-actions">
+        <button type="button" class="btn-sm" id="gNewBtn">New profile</button>
+        <button type="button" class="btn-ghost js-restore">Use a backup code</button>
+        <button type="button" class="link" id="gBack">See the example jar</button>
+      </div>
+    </div>
+
+    <form class="stack" id="gNew" hidden novalidate>
+      <h2 id="gNewH" tabindex="-1">Make a profile</h2>
+      <div>
+        <label class="field-label" for="gName">Your name</label>
+        <input class="text-input" id="gName" maxlength="16" autocomplete="off" placeholder="Maya">
+      </div>
+      <fieldset>
+        <legend class="field-label">Pick a color</legend>
+        <div class="swatches" id="gSwatches"></div>
+      </fieldset>
+      <div>
+        <label class="field-label" for="gPinNew">PIN (optional)</label>
+        <input class="text-input pin-in" id="gPinNew" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-describedby="gPinHint">
+        <p class="hint" id="gPinHint">4 numbers. Coin Jar asks for it when you open the app. It keeps family members out of your jar. It is not strong security.</p>
+      </div>
+      <p class="msg" id="gNewMsg" role="status" data-kind="error"></p>
+      <div class="gate-actions">
+        <button type="submit" class="btn-sm">Create profile</button>
+        <button type="button" class="btn-ghost" id="gNewBack">Back</button>
+        <button type="button" class="link js-restore">I have a backup code</button>
+      </div>
+    </form>
+
+    <form class="stack" id="gPin" hidden novalidate>
+      <h2 id="gPinH" tabindex="-1">Enter your PIN</h2>
+      <div>
+        <label class="field-label" for="gPinIn" id="gPinFor">PIN</label>
+        <input class="text-input pin-in" id="gPinIn" type="password" inputmode="numeric" maxlength="4" autocomplete="off">
+      </div>
+      <p class="msg" id="gPinMsg" role="status" data-kind="error"></p>
+      <div class="gate-actions">
+        <button type="submit" class="btn-sm">Open my jar</button>
+        <button type="button" class="btn-ghost" id="gPinBack">Back</button>
+      </div>
+    </form>
+
+    <form class="stack" id="gRestore" hidden novalidate>
+      <h2 id="gRestoreH" tabindex="-1">Use a backup code</h2>
+      <div>
+        <label class="field-label" for="gCode">Paste your code</label>
+        <textarea class="code" id="gCode" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="CJ1...."></textarea>
+        <p class="hint">This makes a new profile on this phone with the coins from the code. Set a PIN afterwards if you want one.</p>
+      </div>
+      <p class="msg" id="gRestoreMsg" role="status" data-kind="error"></p>
+      <div class="gate-actions">
+        <button type="submit" class="btn-sm">Restore my jar</button>
+        <button type="button" class="btn-ghost" id="gRestoreBack">Back</button>
+      </div>
+    </form>
+  </section>
 </main>
 
 <script>
 (() => {
   'use strict';
-  const KEY = 'coinjar.v1';
+  const KEY2 = 'coinjar.v2';
+  const KEY1 = 'coinjar.v1';
   const DAY = 86400000;
   const FILL_H = 206;
+  const MAXP = 6;
+  const COLORS = ['Orange', 'Teal', 'Blue', 'Purple', 'Pink', 'Green'];
   const REASONS = {
     add: ['Allowance', 'Chores', 'Gift', 'Birthday', 'Found it'],
     spend: ['Candy', 'Toy', 'Game', 'Book', 'Snack']
@@ -390,6 +579,9 @@ form[data-mode="spend"] .go:active { box-shadow: 0 2px 0 var(--spend-deep); }
   const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   // <pure>
+  const MAXC = 100000000;
+  const MAXCODE = 120;
+
   function cleanAmount(s) {
     s = String(s).replace(/[^\d.]/g, '');
     const i = s.indexOf('.');
@@ -402,9 +594,149 @@ form[data-mode="spend"] .go:active { box-shadow: 0 2px 0 var(--spend-deep); }
     const c = Math.round(parseFloat(s) * 100);
     return c > 0 ? c : 0;
   }
+  // Small string hash (cyrb53). Used for the PIN lock and the backup code checksum, not for real security.
+  function cyrb53(str, seed) {
+    let h1 = 0xdeadbeef ^ (seed || 0), h2 = 0x41c6ce57 ^ (seed || 0);
+    for (let i = 0; i < str.length; i++) {
+      const ch = str.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761);
+      h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return 4294967296 * (2097151 & h2) + (h1 >>> 0);
+  }
+  function toB64(str) {
+    const bytes = new TextEncoder().encode(str);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function fromB64(s) {
+    s = s.replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    const bin = atob(s);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+  function cleanEntry(e) {
+    if (!e || (e.type !== 'add' && e.type !== 'spend')) return null;
+    if (!Number.isInteger(e.cents) || e.cents < 1 || e.cents > MAXC || !Number.isFinite(e.t)) return null;
+    return { type: e.type, cents: e.cents, note: String(e.note || '').slice(0, 40), t: e.t, ex: !!e.ex };
+  }
+  // Entries are newest first. Returns null if any entry is bad or the jar would ever go below $0.
+  function cleanEntries(list) {
+    if (!Array.isArray(list) || list.length > 5000) return null;
+    const out = [];
+    for (const e of list) {
+      const c = cleanEntry(e);
+      if (!c) return null;
+      out.push(c);
+    }
+    let bal = 0;
+    for (let i = out.length - 1; i >= 0; i--) {
+      bal += out[i].type === 'add' ? out[i].cents : -out[i].cents;
+      if (bal < 0) return null;
+    }
+    return out;
+  }
+  function cleanGoal(g) {
+    if (!g || !Number.isInteger(g.cents) || g.cents < 1 || g.cents > MAXC) return null;
+    return { name: String(g.name || 'My goal').slice(0, 24), cents: g.cents };
+  }
+  function makeCode(p) {
+    const list = p.entries.slice();
+    if (list.length > MAXCODE) {
+      const old = list.splice(MAXCODE);
+      let net = 0;
+      for (const e of old) net += e.type === 'add' ? e.cents : -e.cents;
+      if (net > 0) list.push({ type: 'add', cents: net, note: 'Earlier coins', t: old[old.length - 1].t });
+    }
+    const json = JSON.stringify({
+      n: p.name,
+      c: p.color,
+      g: [p.goal.name, p.goal.cents],
+      e: list.map((e) => [e.type === 'add' ? 'a' : 's', e.cents, e.note || '', e.t])
+    });
+    return 'CJ1.' + toB64(json) + '.' + cyrb53(json).toString(36);
+  }
+  function readCode(text) {
+    const parts = String(text).replace(/\s+/g, '').split('.');
+    if (parts.length !== 3 || parts[0] !== 'CJ1') {
+      return { ok: false, reason: 'Paste the whole code. It starts with CJ1.' };
+    }
+    let json;
+    try { json = fromB64(parts[1]); } catch (err) { return { ok: false, reason: 'That code looks incomplete. Copy it again.' }; }
+    if (cyrb53(json).toString(36) !== parts[2]) {
+      return { ok: false, reason: 'That code looks incomplete or has a typo. Copy it again.' };
+    }
+    let d;
+    try { d = JSON.parse(json); } catch (err) { return { ok: false, reason: 'That code cannot be read.' }; }
+    const name = d && typeof d.n === 'string' ? d.n.trim().slice(0, 16) : '';
+    const goal = d && Array.isArray(d.g) ? cleanGoal({ name: d.g[0], cents: d.g[1] }) : null;
+    const entries = d && Array.isArray(d.e) && d.e.length <= MAXCODE + 1
+      ? cleanEntries(d.e.map((x) => (Array.isArray(x) ? { type: x[0] === 'a' ? 'add' : x[0] === 's' ? 'spend' : '', cents: x[1], note: x[2], t: x[3] } : null)))
+      : null;
+    if (!name || !goal || !entries) return { ok: false, reason: 'That code cannot be read.' };
+    const color = Number.isInteger(d.c) && d.c >= 0 && d.c < 6 ? d.c : 0;
+    return { ok: true, profile: { name, color, goal, entries } };
+  }
   // </pure>
 
-  /* ---------- state ---------- */
+  /* ---------- saved data ---------- */
+  function newId() { return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function makePin(pin) {
+    const salt = Math.random().toString(36).slice(2, 10);
+    return { salt, hash: cyrb53(salt + ':' + pin).toString(36) };
+  }
+  function pinOk(p, pin) { return !!p.pin && cyrb53(p.pin.salt + ':' + pin).toString(36) === p.pin.hash; }
+
+  function cleanProfile(p) {
+    if (!p || typeof p.id !== 'string' || !p.id) return null;
+    const name = String(p.name || '').trim().slice(0, 16);
+    const goal = cleanGoal(p.goal);
+    const entries = cleanEntries(p.entries);
+    if (!name || !goal || !entries) return null;
+    const color = Number.isInteger(p.color) && p.color >= 0 && p.color < 6 ? p.color : 0;
+    const pin = p.pin && typeof p.pin.salt === 'string' && typeof p.pin.hash === 'string' ? { salt: p.pin.salt, hash: p.pin.hash } : null;
+    return { id: p.id, name, color, pin, goal, entries };
+  }
+  function loadV1() {
+    try {
+      const raw = localStorage.getItem(KEY1);
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+      if (!s || s.sample) return null;
+      const goal = cleanGoal(s.goal);
+      const entries = cleanEntries(s.entries);
+      return goal && entries ? { goal, entries } : null;
+    } catch (err) { return null; }
+  }
+  function loadDb() {
+    try {
+      const raw = localStorage.getItem(KEY2);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (d && d.v === 2 && Array.isArray(d.profiles)) {
+          const seen = {};
+          const profiles = [];
+          d.profiles.forEach((p) => {
+            const c = cleanProfile(p);
+            if (c && !seen[c.id] && profiles.length < MAXP) { seen[c.id] = 1; profiles.push(c); }
+          });
+          return { v: 2, last: typeof d.last === 'string' ? d.last : null, profiles };
+        }
+      }
+    } catch (err) { /* fall through */ }
+    const old = loadV1();
+    if (old) {
+      const p = { id: newId(), name: 'My jar', color: 0, pin: null, goal: old.goal, entries: old.entries };
+      return { v: 2, last: p.id, profiles: [p], migrated: true };
+    }
+    return { v: 2, last: null, profiles: [] };
+  }
+
   function sampleState() {
     const now = Date.now();
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -422,28 +754,26 @@ form[data-mode="spend"] .go:active { box-shadow: 0 2px 0 var(--spend-deep); }
   function balanceOf(s) {
     return s.entries.reduce((sum, e) => sum + (e.type === 'add' ? e.cents : -e.cents), 0);
   }
-  function load() {
+
+  let storageOK = true;
+  function persist() {
     try {
-      const raw = localStorage.getItem(KEY);
-      if (!raw) return null;
-      const s = JSON.parse(raw);
-      if (!s || !Array.isArray(s.entries) || !s.goal) return null;
-      const ok = s.entries.every((e) => e && (e.type === 'add' || e.type === 'spend') && Number.isInteger(e.cents) && e.cents > 0 && Number.isFinite(e.t));
-      if (!ok || !Number.isInteger(s.goal.cents) || s.goal.cents <= 0) return null;
-      const clean = {
-        sample: !!s.sample,
-        goal: { name: String(s.goal.name || 'My goal').slice(0, 24), cents: s.goal.cents },
-        entries: s.entries.map((e) => ({ type: e.type, cents: e.cents, note: String(e.note || '').slice(0, 40), t: e.t, ex: !!e.ex }))
-      };
-      return balanceOf(clean) < 0 ? null : clean;
-    } catch (err) { return null; }
-  }
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (err) { /* keep working in memory */ }
+      localStorage.setItem(KEY2, JSON.stringify(db));
+      storageOK = true;
+    } catch (err) {
+      storageOK = false;
+    }
+    $('storeWarn').hidden = storageOK;
+    return storageOK;
   }
 
-  let state = load() || sampleState();
+  let db = loadDb();
+  let me = null;
+  let state = sampleState();
   let mode = 'add';
+  let pinTarget = null;
+
+  function save() { if (me) persist(); }
 
   /* ---------- elements ---------- */
   const form = $('moneyForm');
@@ -456,6 +786,20 @@ form[data-mode="spend"] .go:active { box-shadow: 0 2px 0 var(--spend-deep); }
   function say(text, kind) {
     msgEl.textContent = text;
     if (kind) msgEl.dataset.kind = kind; else delete msgEl.dataset.kind;
+  }
+  function setMsg(id, text, kind) {
+    const el = $(id);
+    el.textContent = text;
+    if (kind) el.dataset.kind = kind;
+  }
+
+  function avatar(p, extra) {
+    const s = document.createElement('span');
+    s.className = 'av' + (extra ? ' ' + extra : '');
+    s.dataset.c = String(p.color);
+    s.setAttribute('aria-hidden', 'true');
+    s.textContent = (Array.from(p.name.trim())[0] || '?').toUpperCase();
+    return s;
   }
 
   /* ---------- balance + jar ---------- */
@@ -587,7 +931,184 @@ form[data-mode="spend"] .go:active { box-shadow: 0 2px 0 var(--spend-deep); }
     renderLog();
   }
 
-  /* ---------- events ---------- */
+  /* ---------- views: jar screen and sign-in screen ---------- */
+  function closeSubpanels() {
+    $('backupBox').hidden = true;
+    $('backupBtn').setAttribute('aria-expanded', 'false');
+    $('pinForm').hidden = true;
+    $('pinBtn').setAttribute('aria-expanded', 'false');
+    $('delSure').hidden = true;
+    $('delAsk').hidden = false;
+    $('clearSure').hidden = true;
+    $('clearAsk').hidden = !me;
+    $('goalForm').hidden = true;
+    $('profMsg').textContent = '';
+    $('newPin').value = '';
+  }
+  function updateChrome() {
+    const w = $('whoBtn');
+    w.textContent = '';
+    if (me) {
+      w.classList.remove('signin');
+      const n = document.createElement('span');
+      n.className = 'nm';
+      n.textContent = me.name;
+      w.append(avatar(me), n);
+      w.setAttribute('aria-label', 'Signed in as ' + me.name + '. Switch profile');
+    } else {
+      w.classList.add('signin');
+      w.textContent = 'Sign in';
+      w.setAttribute('aria-label', 'Sign in or make a profile');
+    }
+    $('profilePanel').hidden = !me;
+    $('saveNote').textContent = me
+      ? 'Saved on this device for ' + me.name + '.'
+      : 'Example jar. Make a profile to save your coins.';
+    $('storeWarn').hidden = storageOK;
+    if (me) {
+      $('profName').textContent = me.name;
+      $('pinBtn').textContent = me.pin ? 'Change PIN' : 'Set a PIN';
+      $('pinRemove').hidden = !me.pin;
+    }
+    closeSubpanels();
+  }
+  function showApp() {
+    $('gateView').hidden = true;
+    $('appView').hidden = false;
+    shown = null;
+    amountEl.value = '';
+    noteEl.value = '';
+    say('');
+    updateChrome();
+    render();
+    renderQuick();
+    renderReasons();
+    window.scrollTo(0, 0);
+  }
+  function showExample() {
+    me = null;
+    state = sampleState();
+    showApp();
+  }
+  function signIn(p) {
+    me = p;
+    state = p;
+    db.last = p.id;
+    persist();
+    showApp();
+  }
+
+  function gateShow(step) {
+    ['gPick', 'gNew', 'gPin', 'gRestore'].forEach((id) => { $(id).hidden = id !== step; });
+    $('appView').hidden = true;
+    $('gateView').hidden = false;
+    window.scrollTo(0, 0);
+    const h = $(step + 'H');
+    if (h) h.focus();
+  }
+  function renderPicker() {
+    const ul = $('profileList');
+    ul.textContent = '';
+    db.profiles.forEach((p) => {
+      const li = document.createElement('li');
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pcard';
+      const n = document.createElement('span');
+      n.className = 'pname';
+      n.textContent = p.name;
+      b.append(avatar(p, 'big'), n);
+      const tag = me && me.id === p.id ? 'Signed in' : p.pin ? 'Has a PIN' : '';
+      if (tag) {
+        const l = document.createElement('span');
+        l.className = 'plock';
+        l.textContent = tag;
+        b.append(l);
+      }
+      b.setAttribute('aria-label', p.name + (tag ? ', ' + tag : ''));
+      b.addEventListener('click', () => pick(p));
+      li.append(b);
+      ul.append(li);
+    });
+    $('gNewBtn').hidden = db.profiles.length >= MAXP;
+    $('gBack').textContent = me ? 'Back to my jar' : 'See the example jar';
+  }
+  function openPicker() {
+    if (db.profiles.length === 0) { openNew(); return; }
+    renderPicker();
+    gateShow('gPick');
+  }
+  function leaveGate() { if (me) showApp(); else showExample(); }
+  function backFromForm() { if (db.profiles.length) openPicker(); else showExample(); }
+
+  function pick(p) {
+    if (me && me.id === p.id) { showApp(); return; }
+    if (p.pin) {
+      pinTarget = p;
+      $('gPinIn').value = '';
+      $('gPinMsg').textContent = '';
+      $('gPinFor').textContent = 'PIN for ' + p.name;
+      gateShow('gPin');
+      $('gPinIn').focus();
+      return;
+    }
+    signIn(p);
+  }
+
+  function nameTaken(n) {
+    const k = n.trim().toLowerCase();
+    return db.profiles.some((p) => p.name.toLowerCase() === k);
+  }
+  function uniqueName(base) {
+    let name = base;
+    let i = 2;
+    while (nameTaken(name)) {
+      const suffix = ' ' + i;
+      name = base.slice(0, 16 - suffix.length) + suffix;
+      i++;
+    }
+    return name;
+  }
+
+  function buildSwatches() {
+    const box = $('gSwatches');
+    box.textContent = '';
+    COLORS.forEach((label, i) => {
+      const l = document.createElement('label');
+      l.className = 'sw';
+      const r = document.createElement('input');
+      r.type = 'radio';
+      r.name = 'color';
+      r.value = String(i);
+      if (i === 0) r.checked = true;
+      const a = document.createElement('span');
+      a.className = 'av';
+      a.dataset.c = String(i);
+      a.setAttribute('aria-hidden', 'true');
+      const t = document.createElement('span');
+      t.className = 'sr';
+      t.textContent = label;
+      l.append(r, a, t);
+      box.append(l);
+    });
+  }
+  function openNew() {
+    if (db.profiles.length >= MAXP) { openPicker(); return; }
+    $('gName').value = '';
+    $('gPinNew').value = '';
+    $('gNewMsg').textContent = '';
+    buildSwatches();
+    gateShow('gNew');
+    $('gName').focus();
+  }
+  function openRestore() {
+    $('gCode').value = '';
+    $('gRestoreMsg').textContent = '';
+    gateShow('gRestore');
+    $('gCode').focus();
+  }
+
+  /* ---------- events: money ---------- */
   form.querySelectorAll('input[name="mode"]').forEach((r) => {
     r.addEventListener('change', () => {
       mode = r.value;
@@ -625,8 +1146,9 @@ form[data-mode="spend"] .go:active { box-shadow: 0 2px 0 var(--spend-deep); }
     render();
     dropCoin(mode);
     const reached = mode === 'add' && bal < state.goal.cents && balanceOf(state) >= state.goal.cents;
-    if (reached) say('Added ' + money(cents) + '. Goal reached, your jar is full!', 'ok');
-    else say(mode === 'add' ? 'Added ' + money(cents) + ' to your jar.' : 'Spent ' + money(cents) + '.', 'ok');
+    const tail = me ? '' : ' This is the example jar, so it is not saved.';
+    if (reached) say('Added ' + money(cents) + '. Goal reached, your jar is full!' + tail, 'ok');
+    else say((mode === 'add' ? 'Added ' + money(cents) + ' to your jar.' : 'Spent ' + money(cents) + '.') + tail, 'ok');
     amountEl.value = '';
     noteEl.value = '';
     renderQuick();
@@ -643,23 +1165,7 @@ form[data-mode="spend"] .go:active { box-shadow: 0 2px 0 var(--spend-deep); }
       : 'Put back the ' + money(e.cents) + ' you spent.', 'ok');
   });
 
-  function resetAll(text) {
-    state = { sample: false, goal: { name: 'My goal', cents: 2000 }, entries: [] };
-    save();
-    render();
-    say(text, 'ok');
-  }
-  $('startFresh').addEventListener('click', () => resetAll('Fresh jar! Add your first coins.'));
-
-  const ask = $('clearAsk'), sure = $('clearSure');
-  ask.addEventListener('click', () => { ask.hidden = true; sure.hidden = false; $('clearNo').focus(); });
-  $('clearNo').addEventListener('click', () => { sure.hidden = true; ask.hidden = false; ask.focus(); });
-  $('clearYes').addEventListener('click', () => {
-    sure.hidden = true; ask.hidden = false;
-    resetAll('All clear. Your jar is empty.');
-  });
-
-  /* goal editing */
+  /* ---------- events: goal ---------- */
   const gf = $('goalForm');
   $('goalEdit').addEventListener('click', () => {
     $('goalNameIn').value = state.goal.name;
@@ -690,10 +1196,191 @@ form[data-mode="spend"] .go:active { box-shadow: 0 2px 0 var(--spend-deep); }
     say('Goal updated.', 'ok');
   });
 
+  /* ---------- events: clear jar ---------- */
+  const ask = $('clearAsk'), sure = $('clearSure');
+  ask.addEventListener('click', () => { ask.hidden = true; sure.hidden = false; $('clearNo').focus(); });
+  $('clearNo').addEventListener('click', () => { sure.hidden = true; ask.hidden = false; ask.focus(); });
+  $('clearYes').addEventListener('click', () => {
+    sure.hidden = true; ask.hidden = false;
+    if (!me) return;
+    me.entries = [];
+    state = me;
+    save();
+    render();
+    say('All clear. Your jar is empty.', 'ok');
+  });
+
+  /* ---------- events: sign in screen ---------- */
+  $('whoBtn').addEventListener('click', openPicker);
+  $('startFresh').addEventListener('click', openPicker);
+  $('switchBtn').addEventListener('click', openPicker);
+  $('gNewBtn').addEventListener('click', openNew);
+  $('gBack').addEventListener('click', leaveGate);
+  document.querySelectorAll('.js-restore').forEach((b) => b.addEventListener('click', openRestore));
+  $('gNewBack').addEventListener('click', backFromForm);
+  $('gRestoreBack').addEventListener('click', backFromForm);
+  $('gPinBack').addEventListener('click', openPicker);
+
+  function digitsOnly(el) {
+    const c = el.value.replace(/\D/g, '').slice(0, 4);
+    if (c !== el.value) el.value = c;
+  }
+  ['gPinNew', 'gPinIn', 'newPin'].forEach((id) => $(id).addEventListener('input', () => digitsOnly($(id))));
+
+  $('gNew').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const name = $('gName').value.trim().slice(0, 16);
+    const pin = $('gPinNew').value;
+    const bad = (text, el) => { setMsg('gNewMsg', text, 'error'); el.focus(); };
+    if (!name) return bad('Type your name first.', $('gName'));
+    if (nameTaken(name)) return bad('Someone already uses that name. Try another.', $('gName'));
+    if (pin && !/^\d{4}$/.test(pin)) return bad('A PIN is exactly 4 numbers. Leave it empty for no PIN.', $('gPinNew'));
+    if (db.profiles.length >= MAXP) return bad('This phone already has ' + MAXP + ' profiles. Delete one first.', $('gName'));
+    const checked = document.querySelector('input[name="color"]:checked');
+    const p = {
+      id: newId(), name, color: checked ? Number(checked.value) : 0,
+      pin: pin ? makePin(pin) : null, goal: { name: 'My goal', cents: 2000 }, entries: []
+    };
+    db.profiles.push(p);
+    signIn(p);
+    say('Welcome, ' + p.name + '! Add your first coins.', 'ok');
+  });
+
+  $('gPin').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    if (!pinTarget) { openPicker(); return; }
+    const v = $('gPinIn').value;
+    if (pinOk(pinTarget, v)) {
+      const p = pinTarget;
+      pinTarget = null;
+      signIn(p);
+    } else {
+      setMsg('gPinMsg', 'That PIN does not match. Try again.', 'error');
+      $('gPinIn').value = '';
+      $('gPinIn').focus();
+    }
+  });
+
+  $('gRestore').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const r = readCode($('gCode').value);
+    if (!r.ok) { setMsg('gRestoreMsg', r.reason, 'error'); $('gCode').focus(); return; }
+    if (db.profiles.length >= MAXP) {
+      setMsg('gRestoreMsg', 'This phone already has ' + MAXP + ' profiles. Delete one first.', 'error');
+      return;
+    }
+    const p = { id: newId(), name: uniqueName(r.profile.name), color: r.profile.color, pin: null, goal: r.profile.goal, entries: r.profile.entries };
+    db.profiles.push(p);
+    signIn(p);
+    say('Restored ' + p.name + '’s jar with ' + money(balanceOf(p)) + '.', 'ok');
+  });
+
+  /* ---------- events: profile panel ---------- */
+  $('backupBtn').addEventListener('click', () => {
+    const box = $('backupBox');
+    const open = box.hidden;
+    $('pinForm').hidden = true;
+    $('pinBtn').setAttribute('aria-expanded', 'false');
+    box.hidden = !open;
+    $('backupBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+    $('profMsg').textContent = '';
+    if (open && me) {
+      $('codeOut').value = makeCode(me);
+      $('codeOut').focus();
+      $('codeOut').select();
+    }
+  });
+  $('codeOut').addEventListener('focus', () => $('codeOut').select());
+  $('copyBtn').addEventListener('click', () => {
+    const ta = $('codeOut');
+    const fallback = () => {
+      ta.focus();
+      ta.select();
+      setMsg('profMsg', 'The code is selected. Press and hold it, then tap Copy.', 'ok');
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(ta.value).then(
+        () => setMsg('profMsg', 'Copied. Paste it somewhere safe.', 'ok'),
+        fallback
+      );
+    } else {
+      fallback();
+    }
+  });
+
+  $('pinBtn').addEventListener('click', () => {
+    const f = $('pinForm');
+    const open = f.hidden;
+    $('backupBox').hidden = true;
+    $('backupBtn').setAttribute('aria-expanded', 'false');
+    f.hidden = !open;
+    $('pinBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+    $('profMsg').textContent = '';
+    $('newPin').value = '';
+    if (open) $('newPin').focus();
+  });
+  $('pinCancel').addEventListener('click', () => {
+    $('pinForm').hidden = true;
+    $('pinBtn').setAttribute('aria-expanded', 'false');
+    $('pinBtn').focus();
+  });
+  $('pinForm').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const v = $('newPin').value;
+    if (!me) return;
+    if (!/^\d{4}$/.test(v)) {
+      setMsg('profMsg', 'A PIN is exactly 4 numbers.', 'error');
+      $('newPin').focus();
+      return;
+    }
+    me.pin = makePin(v);
+    persist();
+    $('pinForm').hidden = true;
+    $('pinBtn').setAttribute('aria-expanded', 'false');
+    $('pinBtn').textContent = 'Change PIN';
+    $('pinRemove').hidden = false;
+    $('newPin').value = '';
+    setMsg('profMsg', 'PIN saved. Coin Jar will ask for it when you open the app.', 'ok');
+  });
+  $('pinRemove').addEventListener('click', () => {
+    if (!me) return;
+    me.pin = null;
+    persist();
+    $('pinForm').hidden = true;
+    $('pinBtn').setAttribute('aria-expanded', 'false');
+    $('pinBtn').textContent = 'Set a PIN';
+    $('pinRemove').hidden = true;
+    setMsg('profMsg', 'PIN removed.', 'ok');
+  });
+
+  $('delAsk').addEventListener('click', () => { $('delAsk').hidden = true; $('delSure').hidden = false; $('delNo').focus(); });
+  $('delNo').addEventListener('click', () => { $('delSure').hidden = true; $('delAsk').hidden = false; $('delAsk').focus(); });
+  $('delYes').addEventListener('click', () => {
+    if (!me) return;
+    const id = me.id;
+    db.profiles = db.profiles.filter((p) => p.id !== id);
+    if (db.last === id) db.last = null;
+    me = null;
+    persist();
+    if (db.profiles.length) openPicker(); else showExample();
+  });
+
   /* ---------- first paint ---------- */
-  render();
-  renderQuick();
-  renderReasons();
+  (function boot() {
+    try {
+      localStorage.setItem('coinjar.t', '1');
+      localStorage.removeItem('coinjar.t');
+    } catch (err) { storageOK = false; }
+    if (db.migrated) {
+      delete db.migrated;
+      if (persist()) { try { localStorage.removeItem(KEY1); } catch (err) { /* old copy can stay */ } }
+    }
+    const last = db.profiles.find((p) => p.id === db.last);
+    if (db.profiles.length === 0) showExample();
+    else if (last && !last.pin) signIn(last);
+    else if (last) pick(last);
+    else openPicker();
+  })();
   requestAnimationFrame(() => requestAnimationFrame(() => jar.classList.add('ready')));
 })();
 </script>
